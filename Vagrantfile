@@ -1,48 +1,86 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-# Set VMs name
-nodes = [
-  { :name => "hadoop-master", :ip => "192.168.33.10", :ram => "2048", :cpu => "2" },
-  { :name => "hadoop-slave1", :ip => "192.168.33.11", :ram => "2048", :cpu => "1" },
-  { :name => "hadoop-slave2", :ip => "192.168.33.12", :ram => "2048", :cpu => "1" },
-  { :name => "hadoop-slave3", :ip => "192.168.33.13", :ram => "2048", :cpu => "1" },
-  { :name => "hbase-master", :ip => "192.168.33.14", :ram => "2048", :cpu => "2" },
-  { :name => "hbase-slave1", :ip => "192.168.33.15", :ram => "2048", :cpu => "1" },
-  { :name => "hbase-slave2", :ip => "192.168.33.16", :ram => "2048", :cpu => "1" },
-  { :name => "spark-master", :ip => "192.168.33.17", :ram => "2048", :cpu => "2" },
-  { :name => "spark-slave1", :ip => "192.168.33.18", :ram => "2048", :cpu => "1" },
-  { :name => "spark-slave2", :ip => "192.168.33.19", :ram => "2048", :cpu => "1" },
-  { :name => "zookeeper-server", :ip => "192.168.33.20", :ram => "2048", :cpu => "1" },
-  { :name => "elasticsearch-node1", :ip => "192.168.33.21", :ram => "2048", :cpu => "2" },
-  { :name => "elasticsearch-node2", :ip => "192.168.33.22", :ram => "2048", :cpu => "1" }
-]
-
 Vagrant.configure("2") do |config|
 
-  # Loop through each node to configure the VM
-  nodes.each do |node|
-
-    # Set the box for the VM
-    config.vm.define node[:name] do |box|
-      box.vm.box = "ubuntu/bionic64"
-
-      # Configure VM settings
-      box.vm.hostname = node[:name]
-      box.vm.network "private_network", ip: node[:ip]
-
-      # Set CPU and memory
-      box.vm.provider "virtualbox" do |vb|
-        vb.memory = node[:ram]
-        vb.cpus = node[:cpu]
-      end
-
-      # Copy files and run scripts
-      box.vm.synced_folder ".", "/vagrant", disabled: true
-      box.vm.provision "shell", path: "scripts/common.sh"
-      box.vm.provision "shell", inline: <<-SHELL
-        sudo apt-get update
-      SHELL
+  config.vm.box = "bento/ubuntu-20.04"
+  config.vm.network "public_network", bridge: "en0: Wi-Fi (AirPort)"
+  
+  # First VM
+  config.vm.define "hadoop1" do |hadoop1|
+    hadoop1.vm.hostname = "hadoop1"
+    hadoop1.vm.network "private_network", ip: "192.168.33.10"
+    hadoop1.vm.provider "virtualbox" do |vb|
+      vb.memory = "3072"
+      vb.cpus = 2
     end
+    hadoop1.vm.provision "shell", inline: <<-SHELL
+      sudo apt-get update
+      sudo apt-get install -y openjdk-8-jdk
+      wget https://mirrors.tuna.tsinghua.edu.cn/apache/hadoop/common/hadoop-3.3.1/hadoop-3.3.1.tar.gz
+      tar -xzf hadoop-3.3.1.tar.gz
+      mv hadoop-3.3.1 /usr/local/hadoop
+      echo "export HADOOP_HOME=/usr/local/hadoop" >> ~/.bashrc
+      echo "export PATH=$PATH:$HADOOP_HOME/bin" >> ~/.bashrc
+      source ~/.bashrc
+    SHELL
   end
+
+  # Second VM
+  config.vm.define "hadoop2" do |hadoop2|
+    hadoop2.vm.hostname = "hadoop2"
+    hadoop2.vm.network "private_network", ip: "192.168.33.11"
+    hadoop2.vm.provider "virtualbox" do |vb|
+      vb.memory = "3072"
+      vb.cpus = 2
+    end
+    hadoop2.vm.provision "shell", inline: <<-SHELL
+      sudo apt-get update
+      sudo apt-get install -y openjdk-8-jdk
+      wget https://mirrors.tuna.tsinghua.edu.cn/apache/hadoop/common/hadoop-3.3.1/hadoop-3.3.1.tar.gz
+      tar -xzf hadoop-3.3.1.tar.gz
+      mv hadoop-3.3.1 /usr/local/hadoop
+      echo "export HADOOP_HOME=/usr/local/hadoop" >> ~/.bashrc
+      echo "export PATH=$PATH:$HADOOP_HOME/bin" >> ~/.bashrc
+      source ~/.bashrc
+    SHELL
+  end
+
+  # Third VM
+  config.vm.define "hadoop3" do |hadoop3|
+    hadoop3.vm.hostname = "hadoop3"
+    hadoop3.vm.network "private_network", ip: "192.168.33.12"
+    hadoop3.vm.provider "virtualbox" do |vb|
+      vb.memory = "3072"
+      vb.cpus = 2
+    end
+    hadoop3.vm.provision "shell", inline: <<-SHELL
+      sudo apt-get update
+      sudo apt-get install -y openjdk-8-jdk
+      wget https://mirrors.tuna.tsinghua.edu.cn/apache/hadoop/common/hadoop-3.3.1/hadoop-3.3.1.tar.gz
+      tar -xzf hadoop-3.3.1.tar.gz
+      mv hadoop-3.3.1 /usr/local/hadoop
+      echo "export HADOOP_HOME=/usr/local/hadoop" >> ~/.bashrc
+      echo "export PATH=$PATH:$HADOOP_HOME/bin" >> ~/.bashrc
+      source ~/.bashrc
+    SHELL
+  end
+
+  # Configure Hadoop
+  config.vm.define "configure-hadoop" do |configure|
+    configure.vm.hostname = "configure"
+    configure.vm.network "private_network", ip: "192.168.33.13"
+    configure.vm.provider "virtualbox" do |vb|
+      vb.memory = "2048"
+      vb.cpus = 1
+    end
+    configure.vm.provision "shell", inline: <<-SHELL
+      sudo apt-get update
+      sudo apt-get install -y rsync
+      sudo rsync -av /vagrant/hadoop-configuration/ /usr/local/hadoop/etc/hadoop/
+    SHELL
+  end
+
 end
+
+
